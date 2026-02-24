@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import pandas as pd
+import os
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
 
@@ -30,8 +31,13 @@ df['usage_category'] = df['energy_consumed_kwh'].apply(
 # 3️⃣ TRAIN DECISION TREE MODEL
 # ==============================
 
-features = ['device_power_rating', 'tariff_rate',
-            'duration_hours', 'temperature', 'hour']
+features = [
+    'device_power_rating',
+    'tariff_rate',
+    'duration_hours',
+    'temperature',
+    'hour'
+]
 
 X = df[features]
 y = df['usage_category']
@@ -47,23 +53,10 @@ dt_model.fit(X_train, y_train)
 # 4️⃣ PEAK HOURS CALCULATION
 # ==============================
 
-def hour_to_ampm(hour):
-    if hour == 0:
-        return "12 AM"
-    elif hour == 12:
-        return "12 PM"
-    elif hour < 12:
-        return f"{hour} AM"
-    else:
-        return f"{hour-12} PM"
-
-def hours_to_intervals(hours_list):
-    if not hours_list:
-        return "No data"
-    return ", ".join([hour_to_ampm(h) for h in sorted(hours_list)])
-
 peak_hours_dict = {}
-grouped = df.groupby(['user_id', 'appliance_name', 'hour'])['energy_consumed_kwh'].sum().reset_index()
+grouped = df.groupby(
+    ['user_id', 'appliance_name', 'hour']
+)['energy_consumed_kwh'].sum().reset_index()
 
 for user in grouped['user_id'].unique():
     peak_hours_dict[user] = {}
@@ -72,7 +65,9 @@ for user in grouped['user_id'].unique():
     for appliance in user_data['appliance_name'].unique():
         data = user_data[user_data['appliance_name'] == appliance]
         max_energy = data['energy_consumed_kwh'].max()
-        peak_hours = data[data['energy_consumed_kwh'] == max_energy]['hour'].tolist()
+        peak_hours = data[
+            data['energy_consumed_kwh'] == max_energy
+        ]['hour'].tolist()
 
         peak_hours_dict[user][appliance.lower()] = peak_hours
 
@@ -81,7 +76,6 @@ for user in grouped['user_id'].unique():
 # ==============================
 
 def get_tips(user_id, appliance, hour, tariff, prediction):
-
     appliance = appliance.lower()
     tips = []
 
@@ -104,9 +98,12 @@ def get_tips(user_id, appliance, hour, tariff, prediction):
 # 6️⃣ PREDICTION API
 # ==============================
 
+@app.route("/")
+def home():
+    return "Energy Backend Running Successfully 🚀"
+
 @app.route("/predict", methods=["POST"])
 def predict():
-
     data = request.json
 
     input_df = pd.DataFrame([{
@@ -133,8 +130,9 @@ def predict():
     })
 
 # ==============================
-# 7️⃣ RUN SERVER
+# 7️⃣ RUN SERVER (Render Compatible)
 # ==============================
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
