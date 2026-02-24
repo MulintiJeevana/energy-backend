@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 import pandas as pd
 import os
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for frontend integration
 
 # ==============================
 # 1️⃣ LOAD DATASET
@@ -95,7 +97,7 @@ def get_tips(user_id, appliance, hour, tariff, prediction):
     return tips
 
 # ==============================
-# 6️⃣ PREDICTION API
+# 6️⃣ ROUTES
 # ==============================
 
 @app.route("/")
